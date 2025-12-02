@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ローグライクハーフ専用ダイスウィジェット</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: white; 
+        }
+        .container {
+            max-width: 100%;
+        }
+        /* ボタンの活性化アニメーション */
+        .btn-active:active {
+            transform: scale(0.95);
+        }
+        /* カウンターの数字表示を固定幅に */
+        .counter-display {
+            width: 5rem; /* 80px */
+        }
+    </style>
+</head>
+<body class="bg-white p-4">
+
+    <div id="app" class="container mx-auto bg-white rounded-xl shadow-xl border border-gray-200 p-6">
+        <h1 class="text-2xl font-extrabold mb-5 text-indigo-700 border-b pb-2">⚔️ ローグライクハーフ ダイス</h1>
+        
+        <!-- ローディングインジケータ (ローカル実行なので実際はほとんど表示されません) -->
+        <div id="loadingIndicator" class="mb-4 hidden flex items-center justify-center space-x-2 p-3 bg-indigo-50 rounded-lg">
+            <svg class="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="loadingText" class="text-indigo-600 font-medium">結果を計算中...</span>
+        </div>
+        
+        <!-- RH判定エリア (ローカル処理 nRH+x>=t を使用) -->
+        <div class="mb-6 p-4 border border-indigo-200 rounded-xl bg-indigo-50">
+            <h2 class="text-lg font-bold mb-3 text-indigo-800 flex items-center">
+                <span class="mr-2">🎯</span> RH判定 (n x (1D6+x) &ge; t 形式)
+            </h2>
+
+            <!-- 3つのコントロールを横並びにするためのコンテナ -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                
+                <!-- 1. 振る回数 (n) コントロール -->
+                <div class="p-2 bg-white rounded-lg shadow-md border border-gray-300">
+                    <label class="block text-xs font-semibold text-indigo-700 mb-2 text-center">振る回数 (n):</label>
+                    <div class="flex items-center justify-center space-x-2">
+                        <button
+                            id="decrementRollCount"
+                            class="p-1 bg-gray-400 text-white text-xl font-bold rounded-lg shadow-md hover:bg-gray-500 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            −
+                        </button>
+                        <span
+                            id="rollCountDisplay"
+                            class="text-3xl font-extrabold text-gray-800 counter-display text-center select-none p-1"
+                        >
+                            1
+                        </span>
+                        <button
+                            id="incrementRollCount"
+                            class="p-1 bg-gray-400 text-white text-xl font-bold rounded-lg shadow-md hover:bg-gray-500 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            ＋
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 技量点 (x) コントロール -->
+                <div class="p-2 bg-white rounded-lg shadow-md border border-gray-300">
+                    <label class="block text-xs font-semibold text-indigo-700 mb-2 text-center">技量点 (x) [修正値]:</label>
+                    <div class="flex items-center justify-center space-x-2">
+                        <button
+                            id="decrementSkill"
+                            class="p-1 bg-red-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-red-600 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            −
+                        </button>
+                        <span
+                            id="skillValueDisplay"
+                            class="text-3xl font-extrabold text-gray-800 counter-display text-center select-none p-1"
+                        >
+                            0
+                        </span>
+                        <button
+                            id="incrementSkill"
+                            class="p-1 bg-green-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-green-600 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            ＋
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 達成値/目標値 (t) コントロール -->
+                <div class="p-2 bg-white rounded-lg shadow-md border border-gray-300">
+                    <label class="block text-xs font-semibold text-indigo-700 mb-2 text-center">目標値 (t) [目標値]:</label>
+                    <div class="flex items-center justify-center space-x-2">
+                        <button
+                            id="decrementTarget"
+                            class="p-1 bg-red-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-red-600 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            −
+                        </button>
+                        <span
+                            id="targetValueDisplay"
+                            class="text-3xl font-extrabold text-gray-800 counter-display text-center select-none p-1"
+                        >
+                            3
+                        </span>
+                        <button
+                            id="incrementTarget"
+                            class="p-1 bg-green-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-green-600 w-10 h-10 flex items-center justify-center btn-active"
+                        >
+                            ＋
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- RH判定実行ボタン -->
+            <button
+                id="rollRhButton"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-xl transition duration-200 ease-in-out transform hover:scale-[1.01] active:scale-[0.99] disabled:bg-indigo-400"
+            >
+                RH判定ロール実行
+            </button>
+        </div>
+
+        <!-- 特殊コマンドエリア -->
+        <div class="mb-6 p-4 border border-gray-200 rounded-xl bg-gray-50">
+            <h2 class="text-lg font-bold mb-3 text-gray-800 flex items-center">
+                <span class="mr-2">✨</span> 特殊ロール (ローカル処理)
+            </h2>
+            
+            <label class="block text-sm font-medium text-gray-700 mb-1">1D6/1D3/D33/NTT用 修正値 (x):</label>
+            <div class="flex items-center justify-center space-x-2 mb-4">
+                <button
+                    id="decrementQuickMod"
+                    class="p-2 bg-red-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-red-600 w-12 h-12 flex items-center justify-center btn-active"
+                >
+                    −
+                </button>
+                <span
+                    id="quickModValueDisplay"
+                    class="text-4xl font-extrabold text-gray-800 counter-display text-center select-none bg-white p-2 rounded-lg border border-gray-300 shadow-inner"
+                >
+                    0
+                </span>
+                <button
+                    id="incrementQuickMod"
+                    class="p-2 bg-green-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-green-600 w-12 h-12 flex items-center justify-center btn-active"
+                >
+                    ＋
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-5 gap-2">
+                <button id="roll1d6" data-command="1d6" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 rounded-lg shadow-md btn-active">
+                    1D6 +x
+                </button>
+                <button id="roll1d3" data-command="1d3" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white font-semibold py-3 rounded-lg shadow-md btn-active">
+                    1D3 +x
+                </button>
+                <button id="rollD66" data-command="D66" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg shadow-md btn-active">
+                    D66
+                </button>
+                <button id="rollD33" data-command="D33" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg shadow-md btn-active">
+                    D33 +x
+                </button>
+                <button id="rollNTT" data-command="NTT" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 rounded-lg shadow-md btn-active">
+                    NTT (宝物表) +x
+                </button>
+            </div>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="resultBox" class="min-h-[100px] p-4 bg-white border border-gray-300 rounded-xl shadow-lg">
+            <p class="text-xs font-semibold text-gray-500 mb-1">最新のロール結果</p>
+            <p id="rollResult" class="text-lg font-mono text-gray-800 whitespace-pre-wrap">「ロールを実行」してください。</p>
+        </div>
+
+        <!-- エラーメッセージ -->
+        <p id="errorMessage" class="text-red-500 text-sm mt-2 hidden font-medium"></p>
+    </div>
+
+    <script>
+        
+        
+        // DOM要素の取得
+        const rollCountDisplay = document.getElementById('rollCountDisplay');
+        const decrementRollCountButton = document.getElementById('decrementRollCount');
+        const incrementRollCountButton = document.getElementById('incrementRollCount');
+
+        const skillValueDisplay = document.getElementById('skillValueDisplay');
+        const decrementSkillButton = document.getElementById('decrementSkill');
+        const incrementSkillButton = document.getElementById('incrementSkill');
+        const targetValueDisplay = document.getElementById('targetValueDisplay');
+        const decrementTargetButton = document.getElementById('decrementTarget');
+        const incrementTargetButton = document.getElementById('incrementTarget');
+        const rollRhButton = document.getElementById('rollRhButton');
+        const quickRollButtons = document.querySelectorAll('.btn-quick');
+        
+        const quickModValueDisplay = document.getElementById('quickModValueDisplay');
+        const decrementQuickModButton = document.getElementById('decrementQuickMod');
+        const incrementQuickModButton = document.getElementById('incrementQuickMod');
+        
+        const rollResult = document.getElementById('rollResult');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const loadingText = document.getElementById('loadingText');
+        
+        // 状態管理
+        let rollCount = 1; // 振る回数
+        let skillValue = 0;
+        let targetValue = 3;
+        let quickModValue = 0; 
+        const MIN_MOD = -10;
+        const MAX_MOD = 10;
+        const MIN_ROLL_COUNT = 1;
+        const MAX_ROLL_COUNT = 30; // 30回を上限とする
+
+        // ----------------------------------------------------
+        // 汎用ダイスロールロジック
+        // ----------------------------------------------------
+
+        /**
+         * 汎用ダイスロール関数
+         * @param {number} count - ダイスの個数
+         * @param {number} faces - ダイスの面数
+         * @returns {{total: number, rolls: number[]}}
+         */
+        function rollDice(count, faces) {
+            let total = 0;
+            const rolls = [];
+            for (let i = 0; i < count; i++) {
+                // Math.floor(Math.random() * faces) + 1 で 1 から faces の整数を生成
+                const roll = Math.floor(Math.random() * faces) + 1;
+                total += roll;
+                rolls.push(roll);
+            }
+            return { total, rolls };
+        }
+
+        /**
+         * 結果表示を更新する関数
+         * @param {string} rollType - ロールタイプ (RH判定, 特殊ロール)
+         * @param {string} command - 表示するコマンド文字列
+         * @param {string} resultText - 判定結果テキスト
+         */
+        const updateResult = (rollType, command, resultText) => {
+            // ローディングを終了し、ボタンを有効化
+            loadingIndicator.classList.add('hidden');
+            rollRhButton.disabled = false;
+            quickRollButtons.forEach(btn => btn.disabled = false);
+            errorMessage.classList.add('hidden');
+
+            const result = `[${rollType}] コマンド: ${command}\n結果:\n${resultText}`;
+            rollResult.textContent = result;
+        };
+
+
+        // ----------------------------------------------------
+        // RH判定 (nRH+x>=t) のローカル処理
+        // ----------------------------------------------------
+        const executeRhRoll = () => {
+            const n = rollCount;
+            const skill = skillValue;
+            const target = targetValue;
+            
+            const commandString = `${n}RH${skill >= 0 ? '+' : ''}${skill}>=${target}`;
+            let resultText = `--- ${n}回のRH判定を開始します ---\n`;
+            
+            let successCount = 0;
+            let criticalCount = 0; // クリティカル数用のカウンターを追加
+            let fumbleCount = 0;   // ファンブル数用のカウンターを追加
+
+            for (let i = 0; i < n; i++) {
+                const { total: roll, rolls } = rollDice(1, 6); // 1D6
+                const resultValue = roll + skill;
+                
+                let successResult = resultValue >= target ? '成功' : '失敗';
+                
+                // ファンブル/クリティカル判定（ローグライクハーフのルールに基づく）
+                let outcome = '';
+                if (roll === 1) {
+                    outcome = `**[ファンブル]** ${successResult}`;
+                    fumbleCount++; // ファンブル数をカウント
+                } else if (roll === 6) {
+                    outcome = `**[クリティカル]** ${successResult}`;
+                    criticalCount++; // クリティカル数をカウント
+                } else {
+                    outcome = `**[${successResult}]**`;
+                }
+
+                if (resultValue >= target) {
+                    successCount++;
+                }
+
+                // 各ロールの結果文字列
+                const rollResultString = `[#${i + 1}] 1D6(${rolls[0]}) ${skill >= 0 ? '+' : ''}${skill} = ${resultValue} ${outcome}`;
+                resultText += rollResultString + '\n';
+            }
+
+            resultText += `\n--- 総合結果 ---\n`;
+            resultText += `成功数: ${successCount} / ${n}\n`;
+            resultText += `クリティカル数: ${criticalCount}\n`; // クリティカル数を表示
+            resultText += `ファンブル数: ${fumbleCount}`;      // ファンブル数を表示
+            
+            // UI更新
+            updateResult('RH判定 (連続)', commandString, resultText);
+        };
+
+        // ----------------------------------------------------
+        // 特殊ロールのローカル処理
+        // ----------------------------------------------------
+        const handleLocalRoll = (baseCommand, mod) => {
+            let rollCommand = baseCommand;
+            let resultText = '';
+            const modString = mod >= 0 ? `+${mod}` : `${mod}`;
+
+            if (baseCommand === '1d6') {
+                const { total, rolls } = rollDice(1, 6);
+                const result = total + mod;
+                resultText = `1D6(${rolls[0]}) ${modString} = ${result}`;
+            } else if (baseCommand === '1d3') {
+                const { total, rolls } = rollDice(1, 3);
+                const result = total + mod;
+                resultText = `1D3(${rolls[0]}) ${modString} = ${result}`;
+            } else if (baseCommand === 'D66') {
+                // D66: 10の位を1D6、1の位を1D6として振る
+                const { rolls: roll1 } = rollDice(1, 6);
+                const { rolls: roll2 } = rollDice(1, 6);
+                const rollValue = roll1[0] * 10 + roll2[0];
+                resultText = `D66 [${roll1[0]}${roll2[0]}] = ${rollValue}`;
+            } else if (baseCommand === 'D33') {
+                // 簡易D33処理: 1D3×10 + 1D3 + x として処理 (BCDiceの正確なD33とは異なる)
+                rollCommand = `D33${modString}`;
+                const { rolls: roll1 } = rollDice(1, 3);
+                const { rolls: roll2 } = rollDice(1, 3);
+                const result = (roll1[0] * 10) + roll2[0] + mod;
+                resultText = `(1D3[${roll1[0]}]×10 + 1D3[${roll2[0]}]) ${modString} = ${result}`;
+            } else if (baseCommand === 'NTT') {
+                // NTT (宝物表) のローカル処理 (1D6+x判定)
+                rollCommand = `NTT${modString}`;
+                
+                // 1. NTT判定ロール (1D6 + mod)
+                const { total: d6Roll, rolls: d6Rolls } = rollDice(1, 6);
+                const finalResult = d6Roll + mod;
+                
+                let treasureDetail = '';
+                
+                if (finalResult <= 1) {
+                    treasureDetail = '金貨1枚 (1 Gold Coin)';
+                } else if (finalResult === 2) {
+                    const { total: goldRoll, rolls: goldRolls } = rollDice(1, 6);
+                    treasureDetail = `1D6(${goldRolls[0]})枚の金貨 = 金貨${goldRoll}枚`;
+                } else if (finalResult === 3) {
+                    const { total: goldRoll, rolls: goldRolls } = rollDice(2, 6);
+                    const actualGold = Math.max(goldRoll, 5);
+                    treasureDetail = `2D6(${goldRolls.join('+')})枚の金貨 = ${goldRoll}枚 (下限5枚適用後: 金貨${actualGold}枚)`;
+                } else if (finalResult === 4) {
+                    const { total: roll1 } = rollDice(1, 6);
+                    const { total: roll2 } = rollDice(1, 6);
+                    const value = roll1 * roll2;
+                    treasureDetail = `1個のアクセサリー (1D6×1D6 = ${roll1}×${roll2} = 金貨${value}枚と同等の価値)`;
+                } else if (finalResult === 5) {
+                    const { total: d6Roll, rolls: d6Rolls } = rollDice(1, 6);
+                    const baseValue = d6Roll * 5;
+                    const actualValue = Math.max(baseValue, 15);
+                    treasureDetail = `1個の宝石・小 (${d6Rolls[0]}×5 = 金貨${baseValue}枚と同等の価値 (下限15枚適用後: 金貨${actualValue}枚))`;
+                } else if (finalResult === 6) {
+                    const { total: d6Roll, rolls: d6Rolls } = rollDice(2, 6);
+                    const baseValue = d6Roll * 5;
+                    const actualValue = Math.max(baseValue, 30);
+                    treasureDetail = `1個の宝石・大 (${d6Rolls.join('+')}×5 = 金貨${baseValue}枚と同等の価値 (下限30枚適用後: 金貨${actualValue}枚))`;
+                } else if (finalResult >= 7) {
+                    treasureDetail = `【魔法の宝物表】でダイスロールを行うこと。`;
+                }
+                
+                // 結果テキストの構築
+                resultText = `NTT判定ロール (1D6${modString}): ${d6Roll} ${modString} = ${finalResult}\n`;
+                resultText += `宝物結果: ${treasureDetail}`;
+            }
+            
+            // UI更新
+            updateResult('特殊ロール', rollCommand, resultText);
+        };
+
+
+        // ----------------------------------------------------
+        // カウンターUIとイベントリスナー設定
+        // ----------------------------------------------------
+
+        // RH判定カウンターの更新
+        const updateRollCountDisplay = () => { rollCountDisplay.textContent = rollCount; };
+        const updateSkillDisplay = () => { skillValueDisplay.textContent = skillValue; };
+        const updateTargetDisplay = () => { targetValueDisplay.textContent = targetValue; };
+        
+        // 特殊ロール修正値カウンターの更新
+        const updateQuickModDisplay = () => { quickModValueDisplay.textContent = quickModValue; };
+
+        // 振る回数 (n) の増減イベント
+        decrementRollCountButton.addEventListener('click', () => {
+            rollCount = Math.max(MIN_ROLL_COUNT, rollCount - 1); 
+            updateRollCountDisplay();
+        });
+        incrementRollCountButton.addEventListener('click', () => {
+            rollCount = Math.min(MAX_ROLL_COUNT, rollCount + 1); 
+            updateRollCountDisplay();
+        });
+        
+        // 技量点 (x) の増減イベント
+        decrementSkillButton.addEventListener('click', () => {
+            skillValue = Math.max(-99, skillValue - 1); 
+            updateSkillDisplay();
+        });
+        incrementSkillButton.addEventListener('click', () => {
+            skillValue = Math.min(99, skillValue + 1); 
+            updateSkillDisplay();
+        });
+
+        // 目標値 (t) の増減イベント
+        decrementTargetButton.addEventListener('click', () => {
+            targetValue = Math.max(-99, targetValue - 1); 
+            updateTargetDisplay();
+        });
+        incrementTargetButton.addEventListener('click', () => {
+            targetValue = Math.min(99, targetValue + 1); 
+            updateTargetDisplay();
+        });
+
+        // 特殊ロール修正値 (x) の増減イベント
+        decrementQuickModButton.addEventListener('click', () => {
+            quickModValue = Math.max(MIN_MOD, quickModValue - 1); 
+            updateQuickModDisplay();
+        });
+        incrementQuickModButton.addEventListener('click', () => {
+            quickModValue = Math.min(MAX_MOD, quickModValue + 1); 
+            updateQuickModDisplay();
+        });
+
+        // --- RH判定実行 (ローカル実行) ---
+        rollRhButton.addEventListener('click', () => {
+            // ローディング開始のUI操作
+            loadingIndicator.classList.remove('hidden');
+            rollRhButton.disabled = true;
+            quickRollButtons.forEach(btn => btn.disabled = true);
+            rollResult.textContent = '結果を計算中...';
+            
+            executeRhRoll();
+        });
+
+
+        // --- 特殊ロール実行 (ローカル実行) ---
+        quickRollButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // ローディング開始のUI操作
+                loadingIndicator.classList.remove('hidden');
+                rollRhButton.disabled = true;
+                quickRollButtons.forEach(btn => btn.disabled = true);
+                rollResult.textContent = '結果を計算中...';
+
+                const baseCommand = button.dataset.command;
+                const mod = quickModValue;
+                
+                handleLocalRoll(baseCommand, mod);
+            });
+        });
+
+        // 初期表示を更新
+        updateRollCountDisplay();
+        updateSkillDisplay();
+        updateTargetDisplay();
+        updateQuickModDisplay();
+        rollResult.textContent = '初期設定が完了しました。「RH判定」または「特殊ロール」を実行してください。';
+
+    </script>
+</body>
+</html>
