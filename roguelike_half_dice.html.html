@@ -36,11 +36,11 @@
         /* クリティカル/ファンブルの点滅アニメーション */
         @keyframes highlightCritical {
             0%, 100% { background-color: transparent; }
-            50% { background-color: #60a5fa; } /* 青色にハイライト */
+            45%, 55% { background-color: #93c5fd; }  /* 青色にハイライト */
         }
         @keyframes highlightFumble {
             0%, 100% { background-color: transparent; }
-            50% { background-color: #fca5a5; } /* 赤色にハイライト */
+            45%, 55% { background-color: #fcd34d; } /* オレンジ色にハイライト */
         }
         .critical-highlight {
             animation: highlightCritical 0.2s ease-in-out 2; /* 2回点滅 */
@@ -683,4 +683,5 @@
     </script>
 </body>
 </html>
+
 
