@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ローグライクハーフ専用ダイスウィジェットver2.1</title>
+    <title>ローグライクハーフ専用ダイスウィジェットver.3.0</</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -33,20 +33,35 @@
         .dice-anim {
             animation: rollDice 0.3s ease-in-out infinite alternate;
         }
-        /* クリティカル/ファンブルの点滅アニメーション */
+        /* クリティカル/ファンブルの点滅アニメーション (光の強度を調整) */
         @keyframes highlightCritical {
             0%, 100% { background-color: transparent; }
-            45%, 55% { background-color: #93c5fd; }  /* 青色にハイライト */
+            /* ピークの時間を短くし、薄い青色(blue-300)で光の強さを軽減 */
+            45%, 55% { background-color: #93c5fd; } 
         }
         @keyframes highlightFumble {
             0%, 100% { background-color: transparent; }
-            45%, 55% { background-color: #fcd34d; } /* オレンジ色にハイライト */
+            /* ピークの時間を短くし、赤よりも優しいオレンジ色(amber-300)で光の強さを軽減 */
+            45%, 55% { background-color: #fcd34d; } 
         }
         .critical-highlight {
             animation: highlightCritical 0.2s ease-in-out 2; /* 2回点滅 */
         }
         .fumble-highlight {
             animation: highlightFumble 0.2s ease-in-out 2; /* 2回点滅 */
+        }
+        /* detailsタグのデフォルトアイコンを非表示にし、カスタムアイコンを適用 */
+        details > summary {
+            list-style: none;
+        }
+        details > summary::before {
+            content: '▶ ';
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        details[open] > summary::before {
+            content: '▼ ';
+            transform: rotate(90deg);
         }
     </style>
 </head>
@@ -55,12 +70,13 @@
     <div id="app" class="container mx-auto bg-white rounded-lg shadow-xl border border-gray-200 p-4">
         <h1 class="text-xl font-extrabold mb-4 text-indigo-700 border-b pb-2">⚔️ ローグライクハーフ ダイス</h1>
         
-        <!-- 設定エリア -->
-        <div class="mb-4 p-3 border border-gray-300 rounded-lg bg-gray-50">
-            <h2 class="text-sm font-bold mb-2 text-gray-700 flex items-center">
+        <!-- 設定エリア (トグル化) -->
+        <details id="settingsArea" class="mb-4 p-3 border border-gray-300 rounded-lg bg-gray-50" open>
+            <summary class="text-sm font-bold text-gray-700 cursor-pointer">
                 ⚙️ 設定
-            </h2>
-            <div class="space-y-2 text-sm">
+            </summary>
+            
+            <div class="mt-2 space-y-2 text-sm">
                 <!-- SE トグル -->
                 <div class="flex items-center justify-between">
                     <label for="seToggle" class="font-medium text-gray-600">効果音 (SE) を有効化</label>
@@ -72,7 +88,7 @@
                     <input type="checkbox" id="animToggle" class="form-checkbox h-4 w-4 text-indigo-600 rounded" checked>
                 </div>
             </div>
-        </div>
+        </details>
 
         <!-- ローディングインジケータ (強化版) -->
         <div id="loadingIndicator" class="mb-3 hidden flex items-center justify-center space-x-3 p-3 bg-indigo-100 rounded-lg">
@@ -82,10 +98,10 @@
             <span id="loadingText" class="text-sm text-indigo-800 font-semibold">ダイスを振っています...</span>
         </div>
         
-        <!-- RH判定エリア -->
+        <!-- RLH判定エリア -->
         <div class="mb-4 p-3 border border-indigo-200 rounded-lg bg-indigo-50">
             <h2 class="text-base font-bold mb-3 text-indigo-800 flex items-center">
-                <span class="mr-2">🎯</span> RH判定 <span class="text-sm font-normal text-indigo-600 ml-1">(nRH+x≥t)</span>
+                <span class="mr-2">🎯</span> RLH判定 <span class="text-sm font-normal text-indigo-600 ml-1">(nRLH+x≥t)</span>
             </h2>
 
             <!-- 3つのコントロールを横並びにするためのコンテナ -->
@@ -167,12 +183,12 @@
                 </div>
             </div>
             
-            <!-- RH判定実行ボタン -->
+            <!-- RLH判定実行ボタン -->
             <button
-                id="rollRhButton"
+                id="rollRlhButton"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg shadow-lg transition duration-200 ease-in-out transform hover:scale-[1.005] active:scale-[0.99]"
             >
-                RH判定ロール実行
+                RLH判定ロール実行
             </button>
         </div>
 
@@ -182,7 +198,7 @@
                 <span class="mr-2">✨</span> 特殊ロール
             </h2>
             
-            <label class="block text-xs font-medium text-gray-700 mb-2">1D6/1D3/D33/NTT用 修正値 (x):</label>
+            <label class="block text-xs font-medium text-gray-700 mb-2">修正値 (+x/-x):</label>
             <div class="flex items-center justify-center space-x-2 mb-3">
                 <button
                     id="decrementQuickMod"
@@ -212,13 +228,13 @@
                     1D3 +x
                 </button>
                 <button id="rollD66" data-command="D66" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    D66
+                    D66 +x
                 </button>
                 <button id="rollD33" data-command="D33" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
                     D33 +x
                 </button>
                 <button id="rollNTT" data-command="NTT" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    NTT +x
+                    宝物 +x
                 </button>
             </div>
         </div>
@@ -237,7 +253,7 @@
             </div>
             <!-- 点滅ハイライト用のラッパー -->
             <div id="highlightWrapper">
-                <p id="rollResult" class="text-sm font-mono text-gray-800 whitespace-pre-wrap">「ロールを実行」してください。</p>
+                <p id="rollResult" class="text-sm font-mono text-gray-800 whitespace-pre-wrap">「RLH判定ロール実行」してください。</p>
             </div>
         </div>
 
@@ -257,7 +273,8 @@
         const targetValueDisplay = document.getElementById('targetValueDisplay');
         const decrementTargetButton = document.getElementById('decrementTarget');
         const incrementTargetButton = document.getElementById('incrementTarget');
-        const rollRhButton = document.getElementById('rollRhButton');
+        // RLH判定ボタンに名称変更
+        const rollRlhButton = document.getElementById('rollRlhButton');
         const quickRollButtons = document.querySelectorAll('.btn-quick');
         
         const quickModValueDisplay = document.getElementById('quickModValueDisplay');
@@ -286,7 +303,7 @@
         const ROLL_DELAY_MS = 800; // 0.8秒の遅延
 
         // ----------------------------------------------------
-        // 効果音 (SE) 処理 - 外部ファイルURLベースに更新
+        // 効果音 (SE) 処理
         // ----------------------------------------------------
 
         // ここにあなたの音声ファイルURLを設定してください。
@@ -297,13 +314,14 @@
             roll: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_singledice.mp3',             
             // 【ユーザー書き換え推奨】クリティカル(成功)時の音 (明るい音)
             // 例: 'https://example.com/audio/critical_hit.wav'
-            critical: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_critical.mp3',             
+            critical: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_critical.mp3',
+            
             // 【ユーザー書き換え推奨】ファンブル(失敗)時の音 (低い音や失敗音)
             // 例: 'https://example.com/audio/fumble_fail.mp3'
-            fumble: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_fumble.mp3'          };
+            fumble:  'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_fumble.mp3'
+        };
 
         // Audioオブジェクトのインスタンスを生成
-        // 注意: ここで指定されたURLが存在しない場合、SEは再生されません。
         let diceRollAudio = new Audio(diceSoundUrls.roll);
         let criticalAudio = new Audio(diceSoundUrls.critical);
         let fumbleAudio = new Audio(diceSoundUrls.fumble);
@@ -387,7 +405,7 @@
             // UIをリセット
             highlightWrapper.classList.remove('critical-highlight', 'fumble-highlight');
             loadingIndicator.classList.add('hidden');
-            rollRhButton.disabled = false;
+            rollRlhButton.disabled = false;
             quickRollButtons.forEach(btn => btn.disabled = false);
             errorMessage.classList.add('hidden');
 
@@ -410,15 +428,15 @@
 
 
         // ----------------------------------------------------
-        // RH判定 (nRH+x>=t) のローカル処理
+        // RLH判定 (nRLH+x>=t) のローカル処理
         // ----------------------------------------------------
-        const executeRhRoll = () => {
+        const executeRlhRoll = () => {
             const n = rollCount;
             const skill = skillValue;
             const target = targetValue;
             
-            const commandString = `${n}RH${skill >= 0 ? '+' : ''}${skill}>=${target}`;
-            let resultText = `--- ${n}回のRH判定を開始します ---\n`;
+            const commandString = `${n}RLH${skill >= 0 ? '+' : ''}${skill}>=${target}`;
+            let resultText = `--- ${n}回のRLH判定を開始します ---\n`;
             
             let successCount = 0;
             let criticalCount = 0;
@@ -462,7 +480,7 @@
             // UI更新は遅延実行
             const delay = animToggle.checked ? ROLL_DELAY_MS : 0;
             setTimeout(() => {
-                updateResult('RH判定 (連続)', commandString, resultText, hasCriticalResult, hasFumbleResult);
+                updateResult('RLH判定 (連続)', commandString, resultText, hasCriticalResult, hasFumbleResult);
             }, delay);
         };
 
@@ -477,26 +495,32 @@
             let hasFumbleResult = false;
 
             if (baseCommand === '1d6') {
+                rollCommand = `1D6${modString}`;
                 const { total, rolls } = rollDice(1, 6);
                 const result = total + mod;
                 resultText = `1D6(${rolls[0]}) ${modString} = ${result}`;
             } else if (baseCommand === '1d3') {
+                rollCommand = `1D3${modString}`;
                 const { total, rolls } = rollDice(1, 3);
                 const result = total + mod;
                 resultText = `1D3(${rolls[0]}) ${modString} = ${result}`;
             } else if (baseCommand === 'D66') {
+                // D66にも修正値を適用するように変更
+                rollCommand = `D66${modString}`;
                 const { rolls: roll1 } = rollDice(1, 6);
                 const { rolls: roll2 } = rollDice(1, 6);
-                const rollValue = roll1[0] * 10 + roll2[0];
-                resultText = `D66 [${roll1[0]}${roll2[0]}] = ${rollValue}`;
+                const baseValue = roll1[0] * 10 + roll2[0];
+                const result = baseValue + mod;
+                resultText = `D66 [${roll1[0]}${roll2[0]}] ${modString} = ${result} (出目: ${baseValue})`;
             } else if (baseCommand === 'D33') {
                 rollCommand = `D33${modString}`;
                 const { rolls: roll1 } = rollDice(1, 3);
                 const { rolls: roll2 } = rollDice(1, 3);
-                const result = (roll1[0] * 10) + roll2[0] + mod;
-                resultText = `(1D3[${roll1[0]}]×10 + 1D3[${roll2[0]}]) ${modString} = ${result}`;
+                const baseValue = (roll1[0] * 10) + roll2[0];
+                const result = baseValue + mod;
+                resultText = `(1D3[${roll1[0]}]×10 + 1D3[${roll2[0]}]) ${modString} = ${result} (出目: ${baseValue})`;
             } else if (baseCommand === 'NTT') {
-                rollCommand = `NTT${modString}`;
+                rollCommand = `宝物${modString}`;
                 
                 const { total: d6Roll, rolls: d6Rolls } = rollDice(1, 6);
                 const finalResult = d6Roll + mod;
@@ -532,7 +556,7 @@
                 }
                 
                 // 結果テキストの構築
-                resultText = `NTT判定ロール (1D6${modString}): ${d6Roll} ${modString} = ${finalResult}\n`;
+                resultText = `宝物判定ロール (1D6${modString}): ${d6Roll} ${modString} = ${finalResult}\n`;
                 resultText += `宝物結果: ${treasureDetail}`;
             }
             
@@ -581,7 +605,7 @@
         // カウンターUIとイベントリスナー設定
         // ----------------------------------------------------
 
-        // RH判定カウンターの更新
+        // RLH判定カウンターの更新
         const updateRollCountDisplay = () => { rollCountDisplay.textContent = rollCount; };
         const updateSkillDisplay = () => { skillValueDisplay.textContent = skillValue; };
         const updateTargetDisplay = () => { targetValueDisplay.textContent = targetValue; };
@@ -645,17 +669,17 @@
             }
             
             // ボタンを無効化
-            rollRhButton.disabled = true;
+            rollRlhButton.disabled = true;
             quickRollButtons.forEach(btn => btn.disabled = true);
             // 点滅クラスをリセット
             highlightWrapper.classList.remove('critical-highlight', 'fumble-highlight');
         };
 
 
-        // --- RH判定実行 ---
-        rollRhButton.addEventListener('click', () => {
+        // --- RLH判定実行 ---
+        rollRlhButton.addEventListener('click', () => {
             startRollProcess();
-            executeRhRoll();
+            executeRlhRoll(); // 関数名を変更
         });
 
 
@@ -678,10 +702,8 @@
         updateSkillDisplay();
         updateTargetDisplay();
         updateQuickModDisplay();
-        rollResult.textContent = '初期設定が完了しました。「RH判定」または「特殊ロール」を実行してください。\n※カスタムSEを利用する場合はコードを編集してください。';
+        rollResult.textContent = '初期設定が完了しました。「RLH判定ロール実行」または「特殊ロール」を実行してください。\n※カスタムSEを利用する場合はコードを編集してください。';
 
     </script>
 </body>
 </html>
-
-
