@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ローグライクハーフ専用ダイスウィジェットver.3.0</</title>
+    <title>ローグライクハーフ専用ダイスウィジェットver.4.0</<</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -20,7 +20,7 @@
         }
         /* カウンターの数字表示を固定幅に */
         .counter-display {
-            width: 4rem; /* 64px (小型化) */
+            width: 4rem; 
         }
         /* ダイスアニメーション (ローディング時) */
         @keyframes rollDice {
@@ -36,21 +36,19 @@
         /* クリティカル/ファンブルの点滅アニメーション (光の強度を調整) */
         @keyframes highlightCritical {
             0%, 100% { background-color: transparent; }
-            /* ピークの時間を短くし、薄い青色(blue-300)で光の強さを軽減 */
             45%, 55% { background-color: #93c5fd; } 
         }
         @keyframes highlightFumble {
             0%, 100% { background-color: transparent; }
-            /* ピークの時間を短くし、赤よりも優しいオレンジ色(amber-300)で光の強さを軽減 */
             45%, 55% { background-color: #fcd34d; } 
         }
         .critical-highlight {
-            animation: highlightCritical 0.2s ease-in-out 2; /* 2回点滅 */
+            animation: highlightCritical 0.2s ease-in-out 2; 
         }
         .fumble-highlight {
-            animation: highlightFumble 0.2s ease-in-out 2; /* 2回点滅 */
+            animation: highlightFumble 0.2s ease-in-out 2; 
         }
-        /* detailsタグのデフォルトアイコンを非表示にし、カスタムアイコンを適用 */
+        /* detailsタグのデフォルトアイコンを非表示に */
         details > summary {
             list-style: none;
         }
@@ -63,32 +61,170 @@
             content: '▼ ';
             transform: rotate(90deg);
         }
+        
+        /* ロール結果のデフォルト色（キャラクターが未設定の場合） */
+        .result-default-color {
+            color: #4b5563; /* gray-700 */
+        }
+        
+        /* コンパクトな色ドット (色アイコン) */
+        .color-dot {
+            width: 0.75rem; /* 12px */
+            height: 0.75rem; /* 12px */
+            border-radius: 50%;
+            border: 1px solid #d1d5db; /* gray-300 */
+            display: inline-block;
+            flex-shrink: 0; /* 縮小防止 */
+        }
+        
+        /* ロールタイプボタンの選択時のスタイル */
+        .roll-type-btn.selected {
+            box-shadow: 0 0 0 2px #4f46e5; /* indigo-600 */
+        }
+
+        /* ---------------------------------------------------- */
+        /* キャラクターカラープルダウン用のカスタムスタイル */
+        /* ---------------------------------------------------- */
+        .char-color-select-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 1.5rem; /* 24px */
+            height: 1.5rem;
+            border-radius: 9999px; /* fully rounded */
+            overflow: hidden;
+            border: 1px solid #d1d5db; /* gray-300 */
+            margin-left: 0.5rem; /* 8px */
+        }
+        
+        /* select要素自体は透明にして、下にあるドットが見えるようにする */
+        .char-color-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* カスタムのドット表示（背景色で表現） */
+        .char-color-display-dot {
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 9999px;
+            transition: transform 0.1s ease-in-out;
+        }
+
+        /* アクティブ化トグルボタンのスタイル */
+        .char-activate-toggle {
+            line-height: 1; 
+            padding: 0.25rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.15s;
+            font-size: 1.2rem; /* アイコンサイズを少し大きく */
+            cursor: pointer;
+            width: 1.75rem; /* 28px */
+            height: 1.75rem; /* 28px */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 名前入力フィールドの幅を調整 (短縮) */
+        .char-name-input {
+            /* アイコン、カラーピッカー、削除ボタンのスペースを引いた値 */
+            width: calc(100% - 6.5rem); 
+        }
+        
     </style>
 </head>
 <body class="bg-white p-3">
 
     <div id="app" class="container mx-auto bg-white rounded-lg shadow-xl border border-gray-200 p-4">
-        <h1 class="text-xl font-extrabold mb-4 text-indigo-700 border-b pb-2">⚔️ ローグライクハーフ ダイス</h1>
         
-        <!-- 設定エリア (トグル化) -->
-        <details id="settingsArea" class="mb-4 p-3 border border-gray-300 rounded-lg bg-gray-50" open>
+        <!-- === ヘッダー === -->
+        <h1 class="text-xl font-extrabold mb-2 text-indigo-700 border-b pb-2 flex items-center">
+            <img src="https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/RLH_icon.png" 
+                 alt="ローグライクハーフロゴ" 
+                 class="w-8 h-8 mr-2 rounded-full" 
+                 style="object-fit: contain;"
+                 onerror="this.style.display='none'; this.parentNode.insertAdjacentHTML('afterbegin', '⚔️');"
+            >
+            <span class="flex-grow">RLH ダイスウィジェット</span>
+        </h1>
+        <!-- ======================= -->
+        
+        <!-- === 設定エリア (変更なし) === -->
+        <details id="settingsArea" class="mb-4 p-3 border border-gray-300 rounded-lg bg-gray-50">
             <summary class="text-sm font-bold text-gray-700 cursor-pointer">
                 ⚙️ 設定
             </summary>
             
             <div class="mt-2 space-y-2 text-sm">
-                <!-- SE トグル -->
+                <!-- 1. SE トグル -->
                 <div class="flex items-center justify-between">
                     <label for="seToggle" class="font-medium text-gray-600">効果音 (SE) を有効化</label>
                     <input type="checkbox" id="seToggle" class="form-checkbox h-4 w-4 text-indigo-600 rounded" checked>
                 </div>
-                <!-- アニメーション/遅延 トグル -->
+                
+                <!-- 2. ファンブル・クリティカルのフラッシュ -->
                 <div class="flex items-center justify-between">
-                    <label for="animToggle" class="font-medium text-gray-600">アニメーションと遅延表示</label>
-                    <input type="checkbox" id="animToggle" class="form-checkbox h-4 w-4 text-indigo-600 rounded" checked>
+                    <label for="flashToggle" class="font-medium text-gray-600">ファンブル・クリティカルのフラッシュ</label>
+                    <input type="checkbox" id="flashToggle" class="form-checkbox h-4 w-4 text-indigo-600 rounded" checked>
+                </div>
+                
+                <!-- 3. 結果遅延・アニメーション表示 (統合) -->
+                <div class="flex items-center justify-between">
+                    <label for="delayAnimToggle" class="font-medium text-gray-600">結果遅延・アニメーション表示 (0.8秒)</label>
+                    <input type="checkbox" id="delayAnimToggle" class="form-checkbox h-4 w-4 text-indigo-600 rounded" checked>
                 </div>
             </div>
         </details>
+
+        <!-- === キャラクター管理エリア (最大8枠、8色) === -->
+        <details id="characterManagementArea" class="mb-4 p-3 border border-pink-200 rounded-lg bg-pink-50" open>
+            <summary class="text-base font-bold mb-3 text-pink-800 cursor-pointer flex items-center">
+                <div class="flex items-center flex-grow">
+                    <span class="mr-2">👤</span> キャラクター管理 (<span id="charCountDisplay">0</span>/<span id="charLimitDisplay">8</span> 枠)
+                </div>
+                <!-- ボタン群をまとめて右側に配置 -->
+                <div class="flex space-x-2 ml-4">
+                    <button
+                        id="addCharacterButton"
+                        class="bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold py-1 px-3 rounded-lg shadow-md transition duration-200 btn-active"
+                        onclick="addCharacterSlot(); event.stopPropagation();"
+                    >
+                        ＋ 枠を追加
+                    </button>
+                    <button
+                        id="randomCharacterButton"
+                        class="bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold py-1 px-3 rounded-lg shadow-md transition duration-200 btn-active"
+                        onclick="randomlySelectActiveCharacter(); event.stopPropagation();"
+                    >
+                        🎲 ランダムアクティブ
+                    </button>
+                </div>
+            </summary>
+            
+            <!-- キャラクターリストを2列グリッドで配置 -->
+            <div id="characterList" class="grid grid-cols-2 gap-2 mb-3 mt-3">
+                <!-- キャラクターの入力・設定欄はJavaScriptでレンダリングされます -->
+            </div>
+
+            <!-- アクティブキャラクター表示 -->
+            <div class="bg-white p-2 rounded-lg shadow-md border border-pink-300">
+                <div class="text-sm font-semibold text-gray-700">
+                    現在のダイスロール担当: 
+                    <span id="activeCharacterDisplay" class="ml-1 text-base font-bold text-gray-800">未設定</span>
+                </div>
+            </div>
+        </details>
+        <!-- ==================================== -->
+
 
         <!-- ローディングインジケータ (強化版) -->
         <div id="loadingIndicator" class="mb-3 hidden flex items-center justify-center space-x-3 p-3 bg-indigo-100 rounded-lg">
@@ -101,8 +237,30 @@
         <!-- RLH判定エリア -->
         <div class="mb-4 p-3 border border-indigo-200 rounded-lg bg-indigo-50">
             <h2 class="text-base font-bold mb-3 text-indigo-800 flex items-center">
-                <span class="mr-2">🎯</span> RLH判定 <span class="text-sm font-normal text-indigo-600 ml-1">(nRLH+x≥t)</span>
+                <span class="mr-2">🎯</span> RLH判定(nRLH+x≥t)
             </h2>
+            
+            <!-- ロールタイプ選択 (順序変更: 判定, 攻撃, 防御) -->
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <button
+                    data-roll-type="判定"
+                    class="roll-type-btn bg-green-400 hover:bg-green-500 text-white font-bold py-2 rounded-lg shadow-md transition duration-200 ease-in-out btn-active"
+                >
+                    🎯 判定
+                </button>
+                <button
+                    data-roll-type="攻撃"
+                    class="roll-type-btn bg-red-400 hover:bg-red-500 text-white font-bold py-2 rounded-lg shadow-md transition duration-200 ease-in-out btn-active selected"
+                >
+                    ⚔️ 攻撃
+                </button>
+                <button
+                    data-roll-type="防御"
+                    class="roll-type-btn bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 rounded-lg shadow-md transition duration-200 ease-in-out btn-active"
+                >
+                    🛡️ 防御
+                </button>
+            </div>
 
             <!-- 3つのコントロールを横並びにするためのコンテナ -->
             <div class="grid grid-cols-3 gap-3 mb-3">
@@ -111,24 +269,9 @@
                 <div class="p-1 bg-white rounded-lg shadow-md border border-gray-300">
                     <label class="block text-xs font-semibold text-indigo-700 mb-1 text-center">回数 (n):</label>
                     <div class="flex items-center justify-center space-x-1">
-                        <button
-                            id="decrementRollCount"
-                            class="p-1 bg-gray-400 text-white text-lg font-bold rounded-md shadow-md hover:bg-gray-500 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            −
-                        </button>
-                        <span
-                            id="rollCountDisplay"
-                            class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0"
-                        >
-                            1
-                        </span>
-                        <button
-                            id="incrementRollCount"
-                            class="p-1 bg-gray-400 text-white text-lg font-bold rounded-md shadow-md hover:bg-gray-500 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            ＋
-                        </button>
+                        <button id="decrementRollCount" class="p-1 bg-gray-400 text-white text-lg font-bold rounded-md shadow-md hover:bg-gray-500 w-8 h-8 flex items-center justify-center btn-active">−</button>
+                        <span id="rollCountDisplay" class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0">1</span>
+                        <button id="incrementRollCount" class="p-1 bg-gray-400 text-white text-lg font-bold rounded-md shadow-md hover:bg-gray-500 w-8 h-8 flex items-center justify-center btn-active">＋</button>
                     </div>
                 </div>
 
@@ -136,24 +279,9 @@
                 <div class="p-1 bg-white rounded-lg shadow-md border border-gray-300">
                     <label class="block text-xs font-semibold text-indigo-700 mb-1 text-center">技量点 (x):</label>
                     <div class="flex items-center justify-center space-x-1">
-                        <button
-                            id="decrementSkill"
-                            class="p-1 bg-red-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-red-600 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            −
-                        </button>
-                        <span
-                            id="skillValueDisplay"
-                            class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0"
-                        >
-                            0
-                        </span>
-                        <button
-                            id="incrementSkill"
-                            class="p-1 bg-green-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-green-600 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            ＋
-                        </button>
+                        <button id="decrementSkill" class="p-1 bg-red-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-red-600 w-8 h-8 flex items-center justify-center btn-active">−</button>
+                        <span id="skillValueDisplay" class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0">0</span>
+                        <button id="incrementSkill" class="p-1 bg-green-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-green-600 w-8 h-8 flex items-center justify-center btn-active">＋</button>
                     </div>
                 </div>
 
@@ -161,24 +289,9 @@
                 <div class="p-1 bg-white rounded-lg shadow-md border border-gray-300">
                     <label class="block text-xs font-semibold text-indigo-700 mb-1 text-center">目標値 (t):</label>
                     <div class="flex items-center justify-center space-x-1">
-                        <button
-                            id="decrementTarget"
-                            class="p-1 bg-red-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-red-600 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            −
-                        </button>
-                        <span
-                            id="targetValueDisplay"
-                            class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0"
-                        >
-                            3
-                        </span>
-                        <button
-                            id="incrementTarget"
-                            class="p-1 bg-green-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-green-600 w-8 h-8 flex items-center justify-center btn-active"
-                        >
-                            ＋
-                        </button>
+                        <button id="decrementTarget" class="p-1 bg-red-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-red-600 w-8 h-8 flex items-center justify-center btn-active">−</button>
+                        <span id="targetValueDisplay" class="text-2xl font-extrabold text-gray-800 counter-display text-center select-none p-0">3</span>
+                        <button id="incrementTarget" class="p-1 bg-green-500 text-white text-lg font-bold rounded-md shadow-md hover:bg-green-600 w-8 h-8 flex items-center justify-center btn-active">＋</button>
                     </div>
                 </div>
             </div>
@@ -195,47 +308,22 @@
         <!-- 特殊コマンドエリア -->
         <div class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
             <h2 class="text-base font-bold mb-3 text-gray-800 flex items-center">
-                <span class="mr-2">✨</span> 特殊ロール
+                <span class="mr-2">✨</span> 特殊ロール　修正値 (+x/-x)
             </h2>
             
-            <label class="block text-xs font-medium text-gray-700 mb-2">修正値 (+x/-x):</label>
+            
             <div class="flex items-center justify-center space-x-2 mb-3">
-                <button
-                    id="decrementQuickMod"
-                    class="p-1 bg-red-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-red-600 w-10 h-10 flex items-center justify-center btn-active"
-                >
-                    −
-                </button>
-                <span
-                    id="quickModValueDisplay"
-                    class="text-3xl font-extrabold text-gray-800 counter-display text-center select-none bg-white p-1 rounded-lg border border-gray-300 shadow-inner"
-                >
-                    0
-                </span>
-                <button
-                    id="incrementQuickMod"
-                    class="p-1 bg-green-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-green-600 w-10 h-10 flex items-center justify-center btn-active"
-                >
-                    ＋
-                </button>
+                <button id="decrementQuickMod" class="p-1 bg-red-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-red-600 w-10 h-10 flex items-center justify-center btn-active">−</button>
+                <span id="quickModValueDisplay" class="text-3xl font-extrabold text-gray-800 counter-display text-center select-none bg-white p-1 rounded-lg border border-gray-300 shadow-inner">0</span>
+                <button id="incrementQuickMod" class="p-1 bg-green-500 text-white text-xl font-bold rounded-lg shadow-md hover:bg-green-600 w-10 h-10 flex items-center justify-center btn-active">＋</button>
             </div>
             
             <div class="grid grid-cols-5 gap-1">
-                <button id="roll1d6" data-command="1d6" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    1D6 +x
-                </button>
-                <button id="roll1d3" data-command="1d3" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    1D3 +x
-                </button>
-                <button id="rollD66" data-command="D66" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    D66 +x
-                </button>
-                <button id="rollD33" data-command="D33" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    D33 +x
-                </button>
-                <button id="rollNTT" data-command="NTT" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">
-                    宝物 +x
-                </button>
+                <button id="roll1d6" data-command="1d6" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">1D6 +x</button>
+                <button id="roll1d3" data-command="1d3" class="btn-quick bg-gray-400 hover:bg-gray-500 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">1D3 +x</button>
+                <button id="rollD66" data-command="D66" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">D66 +x</button>
+                <button id="rollD33" data-command="D33" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">D33 +x</button>
+                <button id="rollNTT" data-command="NTT" class="btn-quick bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold py-2 rounded-lg shadow-md btn-active">宝物 +x</button>
             </div>
         </div>
 
@@ -253,7 +341,8 @@
             </div>
             <!-- 点滅ハイライト用のラッパー -->
             <div id="highlightWrapper">
-                <p id="rollResult" class="text-sm font-mono text-gray-800 whitespace-pre-wrap">「RLH判定ロール実行」してください。</p>
+                <!-- ロール結果を保持する要素。動的にクラスを付与するため、ここではプレースホルダークラスを設定 -->
+                <p id="rollResult" class="text-sm font-mono whitespace-pre-wrap result-default-color">「RLH判定ロール実行」してください。</p>
             </div>
         </div>
 
@@ -262,7 +351,7 @@
     </div>
 
     <script>
-        // DOM要素の取得
+        // DOM要素の取得 (変更なし)
         const rollCountDisplay = document.getElementById('rollCountDisplay');
         const decrementRollCountButton = document.getElementById('decrementRollCount');
         const incrementRollCountButton = document.getElementById('incrementRollCount');
@@ -273,8 +362,9 @@
         const targetValueDisplay = document.getElementById('targetValueDisplay');
         const decrementTargetButton = document.getElementById('decrementTarget');
         const incrementTargetButton = document.getElementById('incrementTarget');
-        // RLH判定ボタンに名称変更
+        
         const rollRlhButton = document.getElementById('rollRlhButton');
+        const rollTypeButtons = document.querySelectorAll('.roll-type-btn'); 
         const quickRollButtons = document.querySelectorAll('.btn-quick');
         
         const quickModValueDisplay = document.getElementById('quickModValueDisplay');
@@ -282,59 +372,320 @@
         const incrementQuickModButton = document.getElementById('incrementQuickMod');
         
         const rollResult = document.getElementById('rollResult');
-        const highlightWrapper = document.getElementById('highlightWrapper'); // 点滅ハイライト用ラッパー
+        const highlightWrapper = document.getElementById('highlightWrapper'); 
         const errorMessage = document.getElementById('errorMessage');
         const loadingIndicator = document.getElementById('loadingIndicator');
         const copyResultButton = document.getElementById('copyResultButton');
         
+        // 新規要素
+        const characterListContainer = document.getElementById('characterList');
+        const activeCharacterDisplay = document.getElementById('activeCharacterDisplay');
+        const addCharacterButton = document.getElementById('addCharacterButton'); 
+        const charCountDisplay = document.getElementById('charCountDisplay');
+        const charLimitDisplay = document.getElementById('charLimitDisplay'); // 最大枠表示用
+        
         // 設定トグル
         const seToggle = document.getElementById('seToggle');
-        const animToggle = document.getElementById('animToggle');
+        const flashToggle = document.getElementById('flashToggle'); 
+        const delayAnimToggle = document.getElementById('delayAnimToggle'); 
         
         // 状態管理
         let rollCount = 1; 
         let skillValue = 0;
         let targetValue = 3;
         let quickModValue = 0; 
+        let currentRollType = '攻撃'; // 初期値は攻撃のまま
         const MIN_MOD = -10;
         const MAX_MOD = 10;
         const MIN_ROLL_COUNT = 1;
         const MAX_ROLL_COUNT = 30;
-        const ROLL_DELAY_MS = 800; // 0.8秒の遅延
+        const ROLL_DELAY_MS = 800; 
+        const MAX_CHARACTERS = 8; // **変更点 3: 最大キャラクター枠を8に**
+        const INITIAL_CHARACTERS = 2; 
 
         // ----------------------------------------------------
-        // 効果音 (SE) 処理
+        // キャラクター管理ロジック 
         // ----------------------------------------------------
+        
+        // **変更点 4: 8色パレットに拡張**
+        const CHARACTER_COLORS = [
+            { name: '黒 (デフォルト)', class: 'text-gray-700', hex: '#374151' }, 
+            { name: 'インディゴ', class: 'text-indigo-600', hex: '#4f46e5' },
+            { name: 'グリーン', class: 'text-green-600', hex: '#16a34a' },
+            { name: 'レッド', class: 'text-red-600', hex: '#dc2626' },
+            { name: 'シアン', class: 'text-cyan-600', hex: '#0891b2' },
+            { name: 'パープル', class: 'text-purple-600', hex: '#9333ea' },
+            { name: 'ピンク', class: 'text-pink-600', hex: '#db2777' },
+            { name: 'イエロー', class: 'text-yellow-600', hex: '#ca8a04' },
+        ];
 
-        // ここにあなたの音声ファイルURLを設定してください。
-        // ファイルはWeb上（GitHub Pages, Dropbox, Imgurなど）にアップロードされている必要があります。
-        const diceSoundUrls = {
-            // 【ユーザー書き換え推奨】ダイスが転がる音 (短く、ランダム性が高いもの)
-            // 例: 'https://example.com/audio/dice_roll.mp3'
-            roll: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_singledice.mp3',             
-            // 【ユーザー書き換え推奨】クリティカル(成功)時の音 (明るい音)
-            // 例: 'https://example.com/audio/critical_hit.wav'
-            critical: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_critical.mp3',
+        let characters = [];
+        let activeCharacterIndex = null; 
+
+        /** 新しいキャラクターオブジェクトを生成する */
+        function createNewCharacter(index) {
+            const defaultName = `キャラクター${index + 1}`;
+            const colorIndex = index % CHARACTER_COLORS.length; 
+            return {
+                name: defaultName,
+                colorIndex: colorIndex
+            };
+        }
+
+        /** キャラクター枠を追加する */
+        function addCharacterSlot() {
+            if (characters.length >= MAX_CHARACTERS) {
+                alert(`キャラクター枠は最大${MAX_CHARACTERS}までです。`);
+                return;
+            }
+            const newIndex = characters.length;
+            const newChar = createNewCharacter(newIndex);
+            characters.push(newChar);
             
-            // 【ユーザー書き換え推奨】ファンブル(失敗)時の音 (低い音や失敗音)
-            // 例: 'https://example.com/audio/fumble_fail.mp3'
-            fumble:  'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_fumble.mp3'
+            if (activeCharacterIndex === null) {
+                activeCharacterIndex = newIndex;
+            }
+
+            renderCharacterArea();
+        }
+        
+        /** 指定したインデックスのキャラクターをアクティブにする */
+        function setActiveCharacter(index) {
+            if (characters[index].name.trim() === '') {
+                console.error('名前が入力されていないキャラクターはアクティブにできません。');
+                return;
+            }
+            activeCharacterIndex = index;
+            renderCharacterArea();
+            updateActiveCharacterDisplay();
+        }
+        
+        /** アクティブキャラクター表示を更新する */
+        function updateActiveCharacterDisplay() {
+            const info = getActiveCharacterInfo();
+            activeCharacterDisplay.textContent = info.name;
+            activeCharacterDisplay.className = `ml-1 text-base font-bold ${info.nameClass}`;
+        }
+
+        /**
+         * **変更点 5: ランダムアクティブの結果表示**
+         * 名前が入力されているキャラクターの中からランダムで一つをアクティブにする
+         */
+        function randomlySelectActiveCharacter() {
+            const availableIndices = characters
+                .map((char, index) => ({ ...char, index }))
+                .filter(char => char.name.trim() !== '')
+                .map(char => char.index);
+
+            if (availableIndices.length === 0) {
+                alert('名前が入力されているキャラクターがいません。');
+                activeCharacterIndex = null;
+                updateActiveCharacterDisplay();
+                updateResult('特殊ロール', 'ランダムアクティブ', '実行されましたが、名前が設定されているキャラクターがいませんでした。', false, false);
+                return;
+            }
+
+            const randomIndex = Math.floor(Math.random() * availableIndices.length);
+            const selectedIndex = availableIndices[randomIndex];
+            
+            setActiveCharacter(selectedIndex);
+            
+            // ロール結果エリアに表示
+            const selectedCharInfo = getActiveCharacterInfo();
+            const resultText = `${selectedCharInfo.name}がランダムに選択されました。今後のロール担当者となります。`;
+            updateResult('特殊ロール', 'ランダムアクティブ', resultText, false, false);
+        }
+
+        /** アクティブなキャラクターの名前と色を取得する */
+        function getActiveCharacterInfo() {
+            if (activeCharacterIndex === null || activeCharacterIndex < 0 || activeCharacterIndex >= characters.length) {
+                return { 
+                    name: '未設定', 
+                    colorClass: CHARACTER_COLORS[0].class, 
+                    nameClass: CHARACTER_COLORS[0].class 
+                };
+            }
+            const char = characters[activeCharacterIndex];
+            const color = CHARACTER_COLORS[char.colorIndex % CHARACTER_COLORS.length];
+            return {
+                name: char.name.trim() || `キャラクター #${activeCharacterIndex + 1}`,
+                colorClass: color.class,
+                nameClass: color.class,
+                colorHex: color.hex
+            };
+        }
+
+        /** キャラクターの削除処理 */
+        function removeCharacter(indexToRemove) {
+            if (characters.length <= 1) {
+                alert('最低1枠は残す必要があります。');
+                return;
+            }
+            
+            characters.splice(indexToRemove, 1);
+            
+            if (activeCharacterIndex === indexToRemove) {
+                activeCharacterIndex = 0; 
+            } else if (activeCharacterIndex > indexToRemove) {
+                activeCharacterIndex--; 
+            }
+            
+            renderCharacterArea();
+        }
+        
+        /**
+         * **変更点 1: アイコンの移動と変更 (☑️/⬜)**
+         * キャラクター管理エリア全体をレンダリングする
+         */
+        function renderCharacterArea() {
+            let html = '';
+            characters.forEach((char, index) => {
+                const isActive = index === activeCharacterIndex;
+                const colorIndex = char.colorIndex % CHARACTER_COLORS.length;
+                const charColor = CHARACTER_COLORS[colorIndex];
+                
+                const colorOptions = CHARACTER_COLORS.map((color, colorIndex) => 
+                    `<option value="${colorIndex}" ${char.colorIndex === colorIndex ? 'selected' : ''}>${color.name}</option>`
+                ).join('');
+
+                const isInactiveAndEmpty = !isActive && char.name.trim() === '';
+                const toggleIcon = isActive ? '☑️' : '⬜'; // **変更点 1: アイコンの変更**
+                const toggleTitle = isActive ? 'ダイス担当中 (クリックで解除不可)' : 'ダイス担当に設定';
+
+                html += `
+                    <div 
+                        data-index="${index}"
+                        class="char-slot flex items-center p-2 bg-white border border-pink-300 rounded-lg shadow-md transition duration-150 ease-in-out hover:bg-pink-100 
+                            ${isActive ? 'shadow-lg ring-2 ring-pink-500' : ''}
+                            ${isInactiveAndEmpty ? 'opacity-70' : ''}"
+                    >
+                        
+                        <!-- 1. アクティブ化トグルボタン (左に移動) -->
+                        <button 
+                            data-index="${index}"
+                            class="char-activate-toggle transition-colors mr-2
+                            ${isActive ? 'text-pink-600' : 'text-gray-500 hover:text-pink-600'}"
+                            title="${toggleTitle}"
+                            onclick="setActiveCharacter(${index}); event.stopPropagation();"
+                        >
+                            ${toggleIcon}
+                        </button>
+
+                        <!-- 2. 名前入力フィールド -->
+                        <input
+                            type="text"
+                            placeholder="名前"
+                            value="${char.name}"
+                            data-index="${index}"
+                            maxlength="10"
+                            class="char-name-input flex-grow p-1 text-sm border-b border-gray-300 focus:border-pink-500 rounded-none focus:outline-none ${charColor.class} font-semibold bg-transparent"
+                            style="line-height: 1.25rem;"
+                        />
+
+                        <!-- 3. カラー選択 (カスタムプルダウンとして表示) -->
+                        <div class="char-color-select-wrapper group" title="キャラクターカラー選択">
+                            <span class="char-color-display-dot" style="background-color: ${charColor.hex};"></span>
+                            <select
+                                data-index="${index}"
+                                class="char-color-select"
+                            >
+                                ${colorOptions}
+                            </select>
+                        </div>
+
+                        <!-- 4. 削除ボタン -->
+                        <button 
+                            data-index="${index}"
+                            class="char-remove-button ml-2 transition-colors bg-gray-200 text-gray-500 hover:bg-red-400 hover:text-white rounded-md p-1 leading-none"
+                            title="この枠を削除"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                        
+                    </div>
+                `;
+            });
+
+            characterListContainer.innerHTML = html;
+            charCountDisplay.textContent = characters.length;
+            charLimitDisplay.textContent = MAX_CHARACTERS; // **変更点 3**
+            
+            // 枠の追加ボタンの有効/無効を切り替え
+            addCharacterButton.disabled = characters.length >= MAX_CHARACTERS;
+            if (addCharacterButton.disabled) {
+                addCharacterButton.classList.add('opacity-50', 'cursor-not-allowed');
+                addCharacterButton.classList.remove('hover:bg-pink-600');
+            } else {
+                addCharacterButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                addCharacterButton.classList.add('hover:bg-pink-600');
+            }
+
+            updateActiveCharacterDisplay();
+            setupCharacterEventListeners();
+        }
+
+        /** キャラクター入力欄と選択肢にイベントリスナーを設定する */
+        function setupCharacterEventListeners() {
+            document.querySelectorAll('.char-name-input').forEach(input => {
+                input.addEventListener('click', (e) => e.stopPropagation()); 
+                input.addEventListener('input', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    characters[index].name = e.target.value;
+                    if (index === activeCharacterIndex) {
+                        updateActiveCharacterDisplay();
+                    }
+                });
+                input.addEventListener('change', renderCharacterArea); 
+            });
+
+            document.querySelectorAll('.char-color-select').forEach(select => {
+                select.addEventListener('click', (e) => e.stopPropagation()); 
+                select.addEventListener('change', (e) => {
+                    const index = parseInt(e.target.dataset.index);
+                    characters[index].colorIndex = parseInt(e.target.value);
+                    renderCharacterArea(); // 再レンダリングして色を更新
+                });
+            });
+
+            document.querySelectorAll('.char-remove-button').forEach(button => {
+                const index = parseInt(button.dataset.index);
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeCharacter(index);
+                });
+            });
+        }
+        
+        // ロールタイプ選択のイベントリスナー
+        rollTypeButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                rollTypeButtons.forEach(btn => btn.classList.remove('selected'));
+                e.currentTarget.classList.add('selected');
+                currentRollType = e.currentTarget.dataset.rollType;
+            });
+        });
+
+        // ----------------------------------------------------
+        // 効果音 (SE) 処理 (変更なし)
+        // ----------------------------------------------------
+
+        const diceSoundUrls = {
+            roll: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_singledice.mp3', 
+            critical: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_critical.mp3', 
+            fumble: 'https://sandmansunaonaritai-glitch.github.io/notion-widget-RLHdice/SE_fumble.mp3'  
         };
 
-        // Audioオブジェクトのインスタンスを生成
         let diceRollAudio = new Audio(diceSoundUrls.roll);
         let criticalAudio = new Audio(diceSoundUrls.critical);
         let fumbleAudio = new Audio(diceSoundUrls.fumble);
 
-        // ボリューム設定 (ノイズ対策のため少し小さめに)
         const defaultVolume = 0.3;
         diceRollAudio.volume = defaultVolume;
-        criticalAudio.volume = defaultVolume * 1.5; // クリティカルは少し大きく
+        criticalAudio.volume = defaultVolume * 1.5; 
         fumbleAudio.volume = defaultVolume;
 
-        /** * 指定された種類のSEを再生する関数
-         * @param {string} type - 'roll', 'critical', 'fumble' のいずれか
-         */
         function playSe(type) {
             if (!seToggle.checked) return;
 
@@ -349,14 +700,11 @@
                 return;
             }
             
-            // 既存の再生を停止し、頭出ししてから再生
             audio.pause();
             audio.currentTime = 0;
-            // play()はPromiseを返すため、エラー処理を行う
-            audio.play().catch(e => console.error(`Audio playback (${type}) failed. Check if the URL is correct and the file exists.`, e));
+            audio.play().catch(e => console.error(`Audio playback (${type}) failed.`, e));
         }
 
-        /** 複数回のロール音を再生してラトル感を出す */
         function playRattlingSound(count = 3, interval = 100) {
             if (!seToggle.checked) return;
             for(let i = 0; i < count; i++) {
@@ -366,21 +714,17 @@
             }
         }
 
-        /** 特殊な成功/失敗音を再生する関数 */
         function playSpecialSound(isCritical) {
             if (!seToggle.checked) return;
             playSe(isCritical ? 'critical' : 'fumble');
         }
 
         // ----------------------------------------------------
-        // 汎用ダイスロールロジック
+        // 汎用ダイスロールロジック (変更なし)
         // ----------------------------------------------------
 
         /**
          * 汎用ダイスロール関数
-         * @param {number} count - ダイスの個数
-         * @param {number} faces - ダイスの面数
-         * @returns {{total: number, rolls: number[]}}
          */
         function rollDice(count, faces) {
             let total = 0;
@@ -395,11 +739,6 @@
 
         /**
          * 結果表示を更新する関数
-         * @param {string} rollType - ロールタイプ
-         * @param {string} command - コマンド文字列
-         * @param {string} resultText - 判定結果テキスト
-         * @param {boolean} hasCritical - クリティカルが含まれるか
-         * @param {boolean} hasFumble - ファンブルが含まれるか
          */
         const updateResult = (rollType, command, resultText, hasCritical, hasFumble) => {
             // UIをリセット
@@ -409,34 +748,51 @@
             quickRollButtons.forEach(btn => btn.disabled = false);
             errorMessage.classList.add('hidden');
 
-            const result = `[${rollType}] コマンド: ${command}\n結果:\n${resultText}`;
+            const activeCharInfo = getActiveCharacterInfo();
+            const charName = activeCharInfo.name;
+            
+            // ロール結果のテキストをキャラクター名で修飾
+            const charPrefix = charName !== '未設定' && rollType !== '特殊ロール' ? `[${charName} / ${rollType}] コマンド: ${command}\n結果:\n` : `[${rollType}] コマンド: ${command}\n結果:\n`;
+            
+            // 特殊ロール（ランダムアクティブなど）の場合は接頭辞をシンプルにする
+            const result = rollType === '特殊ロール' ? resultText : charPrefix + resultText;
+            
             rollResult.textContent = result;
             
-            // ---------------------------------------------
-            // 結果強調処理 (アニメーション/遅延がオンの場合のみ)
-            // ---------------------------------------------
-            if (animToggle.checked) {
+            // ロール結果の色を設定
+            rollResult.classList.remove('result-default-color', ...CHARACTER_COLORS.map(c => c.class));
+            // 特殊ロールの結果はデフォルト色にする
+            if (rollType === '特殊ロール') {
+                 rollResult.classList.add('result-default-color');
+            } else {
+                rollResult.classList.add(activeCharInfo.colorClass);
+            }
+
+
+            // 結果強調処理 (フラッシュトグルの設定に従う)
+            if (flashToggle.checked) {
                 if (hasCritical) {
                     highlightWrapper.classList.add('critical-highlight');
-                    playSpecialSound(true); // クリティカル音
+                    playSpecialSound(true); 
                 } else if (hasFumble) {
                     highlightWrapper.classList.add('fumble-highlight');
-                    playSpecialSound(false); // ファンブル音
+                    playSpecialSound(false); 
                 }
             }
         };
 
 
         // ----------------------------------------------------
-        // RLH判定 (nRLH+x>=t) のローカル処理
+        // RLH判定 (nRLH+x>=t) のローカル処理 (変更なし)
         // ----------------------------------------------------
         const executeRlhRoll = () => {
             const n = rollCount;
             const skill = skillValue;
             const target = targetValue;
-            
+            const rollType = currentRollType; 
+
             const commandString = `${n}RLH${skill >= 0 ? '+' : ''}${skill}>=${target}`;
-            let resultText = `--- ${n}回のRLH判定を開始します ---\n`;
+            let resultText = `--- ${n}回の${rollType}判定を開始します ---\n`;
             
             let successCount = 0;
             let criticalCount = 0;
@@ -445,12 +801,11 @@
             let hasFumbleResult = false;
 
             for (let i = 0; i < n; i++) {
-                const { total: roll, rolls } = rollDice(1, 6); // 1D6
+                const { total: roll, rolls } = rollDice(1, 6); 
                 const resultValue = roll + skill;
                 
                 let successResult = resultValue >= target ? '成功' : '失敗';
                 
-                // ファンブル/クリティカル判定
                 let outcome = '';
                 if (roll === 1) {
                     outcome = `**[ファンブル]** ${successResult}`;
@@ -477,15 +832,14 @@
             resultText += `クリティカル数: ${criticalCount}\n`;
             resultText += `ファンブル数: ${fumbleCount}`;
             
-            // UI更新は遅延実行
-            const delay = animToggle.checked ? ROLL_DELAY_MS : 0;
+            const delay = delayAnimToggle.checked ? ROLL_DELAY_MS : 0;
             setTimeout(() => {
-                updateResult('RLH判定 (連続)', commandString, resultText, hasCriticalResult, hasFumbleResult);
+                updateResult(rollType, commandString, resultText, hasCriticalResult, hasFumbleResult);
             }, delay);
         };
 
         // ----------------------------------------------------
-        // 特殊ロールのローカル処理
+        // 特殊ロールのローカル処理 (変更なし)
         // ----------------------------------------------------
         const handleLocalRoll = (baseCommand, mod) => {
             let rollCommand = baseCommand;
@@ -505,7 +859,6 @@
                 const result = total + mod;
                 resultText = `1D3(${rolls[0]}) ${modString} = ${result}`;
             } else if (baseCommand === 'D66') {
-                // D66にも修正値を適用するように変更
                 rollCommand = `D66${modString}`;
                 const { rolls: roll1 } = rollDice(1, 6);
                 const { rolls: roll2 } = rollDice(1, 6);
@@ -560,18 +913,20 @@
                 resultText += `宝物結果: ${treasureDetail}`;
             }
             
-            // UI更新は遅延実行
-            const delay = animToggle.checked ? ROLL_DELAY_MS : 0;
+            const delay = delayAnimToggle.checked ? ROLL_DELAY_MS : 0;
             setTimeout(() => {
-                // 特殊ロールではクリティカル/ファンブルの強調はしない（hasCritical/hasFumbleはfalseのまま）
                 updateResult('特殊ロール', rollCommand, resultText, hasCriticalResult, hasFumbleResult);
             }, delay);
         };
 
         // ----------------------------------------------------
-        // 結果のクリップボードコピー処理
+        // 結果のクリップボードコピー処理 (変更なし)
         // ----------------------------------------------------
         const copyResultText = () => {
+            const currentClasses = Array.from(rollResult.classList);
+            rollResult.classList.remove(...CHARACTER_COLORS.map(c => c.class), 'result-default-color');
+            rollResult.classList.add('text-black'); 
+
             const textToCopy = rollResult.textContent;
             
             const textArea = document.createElement('textarea');
@@ -592,6 +947,9 @@
             
             document.body.removeChild(textArea);
 
+            rollResult.classList.remove('text-black');
+            rollResult.classList.add(...currentClasses);
+            
             const originalText = copyResultButton.textContent;
             copyResultButton.textContent = msg;
             
@@ -602,18 +960,15 @@
 
 
         // ----------------------------------------------------
-        // カウンターUIとイベントリスナー設定
+        // カウンターUIとイベントリスナー設定 (変更なし)
         // ----------------------------------------------------
 
-        // RLH判定カウンターの更新
         const updateRollCountDisplay = () => { rollCountDisplay.textContent = rollCount; };
         const updateSkillDisplay = () => { skillValueDisplay.textContent = skillValue; };
         const updateTargetDisplay = () => { targetValueDisplay.textContent = targetValue; };
         
-        // 特殊ロール修正値カウンターの更新
         const updateQuickModDisplay = () => { quickModValueDisplay.textContent = quickModValue; };
 
-        // 振る回数 (n) の増減イベント
         decrementRollCountButton.addEventListener('click', () => {
             rollCount = Math.max(MIN_ROLL_COUNT, rollCount - 1); 
             updateRollCountDisplay();
@@ -623,7 +978,6 @@
             updateRollCountDisplay();
         });
         
-        // 技量点 (x) の増減イベント
         decrementSkillButton.addEventListener('click', () => {
             skillValue = Math.max(-99, skillValue - 1); 
             updateSkillDisplay();
@@ -633,7 +987,6 @@
             updateSkillDisplay();
         });
 
-        // 目標値 (t) の増減イベント
         decrementTargetButton.addEventListener('click', () => {
             targetValue = Math.max(-99, targetValue - 1); 
             updateTargetDisplay();
@@ -643,7 +996,6 @@
             updateTargetDisplay();
         });
 
-        // 特殊ロール修正値 (x) の増減イベント
         decrementQuickModButton.addEventListener('click', () => {
             quickModValue = Math.max(MIN_MOD, quickModValue - 1); 
             updateQuickModDisplay();
@@ -653,39 +1005,41 @@
             updateQuickModDisplay();
         });
 
-        // --- ロール共通の開始処理 ---
         const startRollProcess = () => {
-            // SEを有効にしている場合のみ、多重クリック音を再生
             if (seToggle.checked) {
                 playRattlingSound(4, 80); 
             }
 
-            // アニメーション/遅延を有効にしている場合のみ、ローディング表示
-            if (animToggle.checked) {
+            if (delayAnimToggle.checked) {
                 loadingIndicator.classList.remove('hidden');
+                loadingIndicator.classList.add('flex');
                 rollResult.textContent = 'ダイスを振っています...';
             } else {
                  rollResult.textContent = '結果を計算中...';
             }
             
-            // ボタンを無効化
             rollRlhButton.disabled = true;
             quickRollButtons.forEach(btn => btn.disabled = true);
-            // 点滅クラスをリセット
             highlightWrapper.classList.remove('critical-highlight', 'fumble-highlight');
         };
 
 
-        // --- RLH判定実行 ---
         rollRlhButton.addEventListener('click', () => {
+            if (activeCharacterIndex === null || characters[activeCharacterIndex].name.trim() === '') {
+                 alert('エラー: ダイスを振る前に、キャラクター名を入力し、⬜ボタンで担当を設定してください。');
+                return;
+            }
             startRollProcess();
-            executeRlhRoll(); // 関数名を変更
+            executeRlhRoll(); 
         });
 
 
-        // --- 特殊ロール実行 ---
         quickRollButtons.forEach(button => {
             button.addEventListener('click', () => {
+                if (activeCharacterIndex === null || characters[activeCharacterIndex].name.trim() === '') {
+                     alert('エラー: ダイスを振る前に、キャラクター名を入力し、⬜ボタンで担当を設定してください。');
+                    return;
+                }
                 startRollProcess();
                 const baseCommand = button.dataset.command;
                 const mod = quickModValue;
@@ -694,15 +1048,36 @@
             });
         });
 
-        // --- 結果コピーボタンのイベントリスナー ---
         copyResultButton.addEventListener('click', copyResultText);
 
-        // 初期表示を更新
-        updateRollCountDisplay();
-        updateSkillDisplay();
-        updateTargetDisplay();
-        updateQuickModDisplay();
-        rollResult.textContent = '初期設定が完了しました。「RLH判定ロール実行」または「特殊ロール」を実行してください。\n※カスタムSEを利用する場合はコードを編集してください。';
+        // --- 初期化 ---
+        function initialize() {
+            for (let i = 0; i < INITIAL_CHARACTERS; i++) {
+                const newChar = createNewCharacter(i);
+                characters.push(newChar);
+            }
+            if (characters.length > 0) {
+                activeCharacterIndex = 0;
+            }
+
+            // **変更点 2: ロールタイプ初期選択**
+            // 判定、攻撃、防御の順序でボタンにイベントを適用するため、攻撃ボタンを初期選択状態に設定 (HTML側でselectedクラスは設定済み)
+            rollTypeButtons.forEach(btn => {
+                if (btn.dataset.rollType === '攻撃') {
+                    currentRollType = '攻撃';
+                }
+            });
+
+
+            updateRollCountDisplay();
+            updateSkillDisplay();
+            updateTargetDisplay();
+            updateQuickModDisplay();
+            renderCharacterArea(); 
+            rollResult.textContent = '初期設定が完了しました。「RLH判定ロール実行」または「特殊ロール」を実行してください。';
+        }
+
+        initialize();
 
     </script>
 </body>
